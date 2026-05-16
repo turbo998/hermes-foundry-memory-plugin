@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hermes-foundry-memory-plugin"
-version = "0.1.0"
+version = "0.2.0"
 description = "Hermes Agent memory_provider plugin backed by Azure AI Foundry Memory Stores"
 readme = "README.md"
 license = { file = "LICENSE" }
