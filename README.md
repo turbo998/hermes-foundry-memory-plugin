@@ -186,6 +186,50 @@ python examples/quickstart.py
 
 ---
 
+## Use with Microsoft Agent Framework (MAF)
+
+The plugin ships an **optional** adapter that exposes the three Foundry
+memory operations as Microsoft Agent Framework `FunctionTool` instances,
+so they can be dropped straight into an `af.ChatAgent`.
+
+Install the optional extra:
+
+```bash
+pip install -e .[maf]   # pulls agent-framework-core>=1.4.0
+```
+
+Wire the tools into a `ChatAgent`:
+
+```python
+import agent_framework as af
+from hermes_foundry_memory.client import MockFoundryClient  # or AzureFoundryClient
+from hermes_foundry_memory.maf_adapter import get_maf_tools
+
+client = MockFoundryClient()
+tools = get_maf_tools(client=client, thread_id="thread-123", user_id="alice")
+# tools == [foundry_search, foundry_list, foundry_recent]  (FunctionTool x3)
+
+agent = af.ChatAgent(
+    chat_client=af.AzureOpenAIChatClient(...),
+    name="hermes-foundry-agent",
+    instructions="Use foundry_* tools to recall long-term user memory.",
+    tools=tools,
+)
+```
+
+The wrappers are thin: they simply forward to the existing
+`FoundryClient` methods, so all resilience / caching behavior of the
+plugin is preserved.
+
+### Roadmap
+
+- **Native MAF MemoryStore (`af.MemoryStore` ABC) implementation** —
+  full 13-method backend so Hermes Foundry memory can be plugged into
+  MAF as a first-class memory backend. Tracked in
+  [#1](https://github.com/turbo998/hermes-foundry-memory-plugin/issues/1).
+
+---
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

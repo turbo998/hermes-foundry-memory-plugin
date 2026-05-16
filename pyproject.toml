@@ -21,6 +21,9 @@ dependencies = [
     "pytest-asyncio",
 ]
 
+[project.optional-dependencies]
+maf = ["agent-framework-core>=1.4.0"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["hermes_foundry_memory"]
 
