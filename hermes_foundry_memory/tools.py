@@ -98,7 +98,7 @@ def _handle_search(client: Any, args: dict[str, Any], *, thread_id: str, user_id
     if not query or not isinstance(query, str):
         return {"error": "missing required argument: query"}
     top_k = _clamp(int(args.get("top_k", 5)), 1, 20)
-    scope = args.get("scope", "user")
+    scope = args.get("scope") or user_id
     namespace = args.get("namespace")
     results = client.search_long_term(query=query, scope=scope, namespace=namespace, top_k=top_k)
     serialized = [_serialize(r) for r in results]
@@ -107,7 +107,7 @@ def _handle_search(client: Any, args: dict[str, Any], *, thread_id: str, user_id
 
 def _handle_list(client: Any, args: dict[str, Any], *, thread_id: str, user_id: str) -> dict[str, Any]:
     max_results = _clamp(int(args.get("max_results", 20)), 1, 100)
-    scope = args.get("scope", "user")
+    scope = args.get("scope") or user_id
     namespace = args.get("namespace")
     results = client.list_long_term(scope=scope, namespace=namespace, max_results=max_results)
     serialized = [_serialize(r) for r in results]

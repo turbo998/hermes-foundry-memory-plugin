@@ -93,7 +93,7 @@ def test_full_hook_chain_end_to_end(tmp_path, monkeypatch):
     assert provider.user_id == "alice"
 
     # 2. on_memory_write → local file updated + cloud sync enqueued
-    provider.on_memory_write("memory", "add", "hello")
+    provider.on_memory_write("add", "memory", "hello")
     assert (tmp_path / "memories" / "MEMORY.md").exists()
 
     # 3. sync_turn → add_turns enqueued

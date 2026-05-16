@@ -7,8 +7,8 @@ by an advisory fcntl lock on the tmp file.
 
 from __future__ import annotations
 
-import fcntl
 import os
+import tempfile
 from pathlib import Path
 
 SEPARATOR = "\n§\n"
@@ -36,33 +36,30 @@ def read_entries(path: Path) -> list[str]:
 def write_entries_atomic(path: Path, entries: list[str]) -> None:
     """Atomically write *entries* to *path*.
 
-    Steps:
-      1. ensure parent dir exists
-      2. write to ``path + .tmp``
-      3. acquire exclusive fcntl lock on the tmp fd while writing
-      4. ``os.replace`` tmp -> path (atomic on POSIX)
+    Uses a unique tempfile (via ``tempfile.mkstemp``) in the same directory so
+    that concurrent writers from multiple threads/processes do not race on the
+    same ``.tmp`` filename. Final rename via ``os.replace`` is atomic on POSIX.
     """
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
-    tmp = p.with_suffix(p.suffix + ".tmp")
 
     payload = SEPARATOR.join(entries) + "\n"
 
-    # open with O_CREAT|O_WRONLY|O_TRUNC; lock; write; fsync; close; replace.
-    fd = os.open(tmp, os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o644)
+    fd, tmp_name = tempfile.mkstemp(
+        prefix=p.name + ".", suffix=".tmp", dir=str(p.parent)
+    )
     try:
-        fcntl.flock(fd, fcntl.LOCK_EX)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(payload)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_name, p)
+    except Exception:
         try:
-            with os.fdopen(fd, "w", encoding="utf-8", closefd=False) as f:
-                f.write(payload)
-                f.flush()
-                os.fsync(fd)
-        finally:
-            fcntl.flock(fd, fcntl.LOCK_UN)
-    finally:
-        os.close(fd)
-
-    os.replace(tmp, p)
+            os.unlink(tmp_name)
+        except OSError:
+            pass
+        raise
 
 
 def append_entry(path: Path, content: str) -> None:

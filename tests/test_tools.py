@@ -88,7 +88,7 @@ def test_search_missing_query_returns_error(client):
 # --- list ---
 
 def test_list_calls_client_and_returns_results(client):
-    client.records[("user", None)] = [MemoryRecord(content="a"), MemoryRecord(content="b")]
+    client.records[("u", None)] = [MemoryRecord(content="a"), MemoryRecord(content="b")]
     out = handle_tool_call(client, "azurememory_list", {"max_results": 2}, thread_id="t", user_id="u")
     data = json.loads(out)
     assert data["count"] == 2

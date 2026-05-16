@@ -23,7 +23,7 @@ def test_initialize_primary_pulls_cloud(tmp_path):
         hermes_home=tmp_path,
     )
     try:
-        p.initialize("sess", "u1", agent_context="primary")
+        p.initialize("sess", user_id="u1", agent_context="primary")
         mem = read_entries(tmp_path / "memories" / "MEMORY.md")
         usr = read_entries(tmp_path / "memories" / "USER.md")
         assert mem == ["cloud-mem-1", "cloud-mem-2"]
@@ -41,7 +41,7 @@ def test_initialize_non_primary_context_no_pull(tmp_path):
         hermes_home=tmp_path,
     )
     try:
-        p.initialize("sess", "u1", agent_context="child")
+        p.initialize("sess", user_id="u1", agent_context="child")
         # no list_long_term calls
         assert not [c for c in client.calls if c[0] == "list_long_term"]
         assert not (tmp_path / "memories" / "MEMORY.md").exists()
@@ -58,7 +58,7 @@ def test_initialize_primary_mode_disabled(tmp_path):
         hermes_home=tmp_path,
     )
     try:
-        p.initialize("sess", "u1", agent_context="primary")
+        p.initialize("sess", user_id="u1", agent_context="primary")
         assert not [c for c in client.calls if c[0] == "list_long_term"]
     finally:
         p.shutdown()
@@ -72,7 +72,7 @@ def test_breaker_open_skips_writes(tmp_path):
         hermes_home=tmp_path,
     )
     try:
-        p.initialize("s", "u1", agent_context="other")
+        p.initialize("s", user_id="u1", agent_context="other")
         # Force breaker open
         for _ in range(10):
             p._breaker.record_failure()
@@ -96,8 +96,8 @@ def test_ha_backup_mirrors(tmp_path):
         hermes_home=tmp_path,
     )
     try:
-        p.initialize("s", "u1", agent_context="other")
-        p.on_memory_write("memory", "add", "fact")
+        p.initialize("s", user_id="u1", agent_context="other")
+        p.on_memory_write("add", "memory", "fact")
         p._wait_idle(timeout=2.0)
         bc = [c for c in client.calls if c[0] == "batch_create_records"]
         namespaces = {c[2] for c in bc}

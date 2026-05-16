@@ -58,8 +58,8 @@ def main() -> None:
         )
         print("[provider] initialized")
 
-        provider.on_memory_write("memory", "add", "user is building an Azure plugin")
-        provider.on_memory_write("user", "add", "preferred_name=Avery")
+        provider.on_memory_write("add", "memory", "user is building an Azure plugin")
+        provider.on_memory_write("add", "user", "preferred_name=Avery")
         provider.sync_turn("hi there", "hello! how can I help?")
 
         # Wait for async worker to drain.

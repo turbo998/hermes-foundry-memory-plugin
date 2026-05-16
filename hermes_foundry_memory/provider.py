@@ -83,10 +83,24 @@ class FoundryMemoryProvider:
     # Lifecycle
     # ------------------------------------------------------------------
     def initialize(
-        self, session_id: str, user_id: str, agent_context: str = ""
+        self,
+        session_id: str,
+        *,
+        user_id: str = "",
+        agent_context: str = "",
+        hermes_home: Optional[Path] = None,
+        agent_identity: Any = None,
+        agent_workspace: Any = None,
+        **kwargs: Any,
     ) -> None:
         self.session_id = session_id
         self.user_id = user_id or self.user_id
+        if hermes_home is not None:
+            self.hermes_home = Path(hermes_home)
+            self.memories_dir = self.hermes_home / "memories"
+            self.memories_dir.mkdir(parents=True, exist_ok=True)
+            self.memory_file = self.memories_dir / "MEMORY.md"
+            self.user_file = self.memories_dir / "USER.md"
 
         if not self.config.get("primary_mode", True):
             return
@@ -151,7 +165,7 @@ class FoundryMemoryProvider:
         raise ValueError(f"unknown memory target: {target}")
 
     def on_memory_write(
-        self, target: str, action: str, content: str, old_text: str = ""
+        self, action: str, target: str, content: str, old_text: str = ""
     ) -> None:
         path = self._target_path(target)
         entries = read_entries(path)
@@ -188,22 +202,30 @@ class FoundryMemoryProvider:
                 }
             )
 
-    def sync_turn(self, user_msg: str, assistant_msg: str) -> None:
+    def sync_turn(
+        self,
+        user_content: str,
+        assistant_content: str,
+        *,
+        session_id: str = "",
+        **kwargs: Any,
+    ) -> None:
+        thread_id = session_id or self.session_id
         self._enqueue(
             {
                 "op": "add_turns",
                 "payload": {
-                    "thread_id": self.session_id,
+                    "thread_id": thread_id,
                     "user_id": self.user_id,
                     "messages": [
-                        Message(role="user", content=user_msg),
-                        Message(role="assistant", content=assistant_msg),
+                        Message(role="user", content=user_content),
+                        Message(role="assistant", content=assistant_content),
                     ],
                 },
             }
         )
 
-    def on_pre_compress(self, messages: list[dict]) -> None:
+    def on_pre_compress(self, messages: list[dict]) -> str:
         last = messages[-10:]
         joined = "\n".join(
             f"[{m.get('role', 'OTHER')}] {m.get('content', '')}" for m in last
@@ -218,8 +240,44 @@ class FoundryMemoryProvider:
                 },
             }
         )
+        return joined
 
-    def on_delegation(self, task: str, result: str, child_session_id: str) -> None:
+    def on_session_end(self, messages: list[dict]) -> None:
+        """Persist the full session transcript to a /sessions/ namespace."""
+        if not messages:
+            return
+        joined = "\n".join(
+            f"[{m.get('role', 'OTHER')}] {m.get('content', '')}" for m in messages
+        )
+        self._enqueue(
+            {
+                "op": "batch_create",
+                "payload": {
+                    "scope": self.user_id,
+                    "namespace": "/sessions/",
+                    "contents": [joined],
+                },
+            }
+        )
+
+    def on_turn_start(
+        self, turn_number: int, message: Any, **kwargs: Any
+    ) -> None:
+        """No-op hook called by the host at the start of each turn."""
+        logger.debug(
+            "foundry_memory: on_turn_start turn=%s session=%s",
+            turn_number,
+            self.session_id,
+        )
+
+    def on_delegation(
+        self,
+        task: str,
+        result: str,
+        *,
+        child_session_id: str = "",
+        **kwargs: Any,
+    ) -> None:
         contents = [
             f"task: {task}",
             f"result: {result}",
@@ -290,7 +348,12 @@ class FoundryMemoryProvider:
     def get_tool_schemas(self) -> list[dict[str, Any]]:
         return tools.get_tool_schemas()
 
-    def handle_tool_call(self, name: str, args: dict[str, Any] | None) -> str:
+    def has_tool(self, name: str) -> bool:
+        return any(s.get("name") == name for s in tools.get_tool_schemas())
+
+    def handle_tool_call(
+        self, name: str, args: dict[str, Any] | None, **kwargs: Any
+    ) -> str:
         return tools.handle_tool_call(
             self.client,
             name,
@@ -298,6 +361,46 @@ class FoundryMemoryProvider:
             thread_id=self.session_id,
             user_id=self.user_id,
         )
+
+    def get_config_schema(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "key": "foundry_endpoint",
+                "description": "Azure AI Foundry endpoint URL",
+                "secret": False,
+                "required": True,
+                "env_var": "FOUNDRY_ENDPOINT",
+            },
+            {
+                "key": "memory_store_name",
+                "description": "Foundry Memory Store name",
+                "default": "hermes_user_mem",
+                "env_var": "FOUNDRY_MEMORY_STORE",
+            },
+            {
+                "key": "api_key",
+                "description": "Azure Foundry API key (if not using AAD)",
+                "secret": True,
+                "required": False,
+                "env_var": "FOUNDRY_API_KEY",
+            },
+            {
+                "key": "user_id",
+                "description": "Default user identifier (scope) for memory isolation",
+                "default": "default-user",
+                "env_var": "FOUNDRY_USER_ID",
+            },
+            {
+                "key": "primary_mode",
+                "description": "Use Foundry as the source of truth for builtin memory",
+                "default": True,
+            },
+            {
+                "key": "ha_backup",
+                "description": "Mirror writes to a backup namespace",
+                "default": False,
+            },
+        ]
 
     # ------------------------------------------------------------------
     # Worker
