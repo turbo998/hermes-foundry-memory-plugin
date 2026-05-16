@@ -221,12 +221,53 @@ The wrappers are thin: they simply forward to the existing
 `FoundryClient` methods, so all resilience / caching behavior of the
 plugin is preserved.
 
-### Roadmap
+## Native MAF MemoryStore (`af.MemoryStore`)
 
-- **Native MAF MemoryStore (`af.MemoryStore` ABC) implementation** —
-  full 13-method backend so Hermes Foundry memory can be plugged into
-  MAF as a first-class memory backend. Tracked in
-  [#1](https://github.com/turbo998/hermes-foundry-memory-plugin/issues/1).
+For deeper integration, the plugin also ships
+`AzureBlobMemoryStore` — a full implementation of the
+`agent_framework.MemoryStore` ABC backed by an Azure Blob container.
+It can be plugged directly into MAF's `MemoryContextProvider` so a
+`ChatAgent` persists topics, the `MEMORY.md` index, maintenance state,
+and transcripts into a customer-owned blob container.
+
+Blob layout (per `source_id`):
+
+```
+{owner_id}/{source_id}/topics/{slug}.md   ← MemoryTopicRecord
+{owner_id}/{source_id}/MEMORY.md          ← cached index
+{owner_id}/{source_id}/state.json         ← maintenance state
+{owner_id}/{source_id}/transcripts/...    ← raw JSONL transcripts
+```
+
+```python
+import agent_framework as af
+from agent_framework._harness._memory import MemoryContextProvider
+from azure.identity import DefaultAzureCredential
+from hermes_foundry_memory.maf_memory_store import AzureBlobMemoryStore
+
+store = AzureBlobMemoryStore(
+    account_url="https://mytenant.blob.core.windows.net",
+    container="hermes-memory",
+    credential=DefaultAzureCredential(),
+)
+
+memory_provider = MemoryContextProvider(store=store, source_id="chat")
+
+agent = af.ChatAgent(
+    chat_client=af.AzureOpenAIChatClient(...),
+    name="hermes-blob-memory-agent",
+    instructions="...",
+    context_providers=[memory_provider],
+)
+# Required: set session.state["owner_id"] before the first turn.
+```
+
+> `get_transcripts_directory` returns a *local* cache path
+> (`~/.cache/hermes-foundry-memory/transcripts/{owner}/{source}`) because
+> the MAF API requires a `Path`. A future `sync_transcripts` step will
+> upload those JSONL files to the blob `transcripts/` prefix.
+> `search_transcripts` already queries the blob side directly so it
+> works in cross-host deployments.
 
 ---
 
