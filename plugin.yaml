@@ -1,0 +1,10 @@
+name: foundry_memory
+type: memory_provider
+version: 0.1.0
+features:
+  - semantic_search
+  - user_preferences
+  - conversation_summaries
+  - episodic_memory
+  - ha_backup
+  - primary_storage

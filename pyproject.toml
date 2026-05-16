@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hermes-foundry-memory-plugin"
+version = "0.1.0"
+description = "Hermes Agent memory_provider plugin backed by Azure AI Foundry Memory Stores"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [
+    { name = "turbo998 Chen Qi" },
+]
+dependencies = [
+    "azure-ai-projects>=1.0.0b1",
+    "azure-ai-agents>=1.0.0b1",
+    "azure-identity>=1.17",
+    "azure-search-documents>=11.5",
+    "pytest>=8",
+    "pytest-asyncio",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["hermes_foundry_memory"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
