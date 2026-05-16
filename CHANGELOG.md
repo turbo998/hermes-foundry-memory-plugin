@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-16
+
 ### Added
 - **MAF adapter** (`get_maf_tools`) — tool wrapper for Microsoft Agent
   Framework `ChatAgent` integration. Optional extra:
@@ -38,4 +40,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Quickstart example (`examples/quickstart.py`) runnable without Azure.
 - 89 passing tests (1 skipped — live Azure-only path).
 
+[0.2.0]: https://github.com/turbo998/hermes-foundry-memory-plugin/releases/tag/v0.2.0
 [0.1.0]: https://github.com/turbo998/hermes-foundry-memory-plugin/releases/tag/v0.1.0
