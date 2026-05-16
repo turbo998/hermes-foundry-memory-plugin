@@ -1,11 +1,19 @@
 # hermes-foundry-memory-plugin
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
+[![Tests](https://img.shields.io/badge/tests-89%20passing%20%2B%201%20skipped-brightgreen.svg)](#development)
+[![Hermes plugin](https://img.shields.io/badge/hermes--agent-plugin-8A2BE2.svg)](https://github.com/NousResearch)
+[![Maturity](https://img.shields.io/badge/maturity-beta-orange.svg)](#)
+
+> **Azure equivalent of [`guanquntang/hermes-agentcore-memory`](https://github.com/guanquntang/hermes-agentcore-memory).**
+> Same Hermes Agent `memory_provider` contract, swapped onto Azure AI Foundry
+> (Memory Stores + Threads) instead of AWS Bedrock AgentCore + S3.
 
 A `memory_provider` plugin for [Hermes Agent](https://github.com/NousResearch)
 backed by **Azure AI Foundry Memory Stores** and **Foundry Threads**. It is the
 Azure-native counterpart of
-[`hermes-agentcore-memory`](https://github.com/NousResearch/hermes-agentcore-memory)
+[`hermes-agentcore-memory`](https://github.com/guanquntang/hermes-agentcore-memory)
 (which targets AWS Bedrock AgentCore + S3).
 
 The implementation plan lives at
